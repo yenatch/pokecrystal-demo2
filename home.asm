@@ -3503,3 +3503,39 @@ Function3f9f: ; 3f9f
 	ret
 ; 3fb5
 
+
+CopyBytesAdd:
+; Copy bc bytes, adding a, from hl to de.
+
+	inc b
+	inc c
+	jr .next
+.copy
+	push af
+	add [hl]
+	inc hl
+	ld [de], a
+	inc de
+	pop af
+.next
+	dec c
+	jr nz, .copy
+	ret
+
+
+HotLCD:
+; Like LCD but hotter (in bank 5).
+	push af
+	ld a, [rSVBK]
+	push af
+
+	ld a, 5
+	ld [rSVBK], a
+
+	call LCD
+
+	pop af
+	and 7
+	ld [rSVBK], a
+	pop af
+	reti

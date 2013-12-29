@@ -4,7 +4,7 @@ SECTION "vblank",ROM0[$40]
 	jp VBlank
 
 SECTION "lcd",ROM0[$48]
-	jp LCD
+	jp HotLCD
 
 SECTION "timer",ROM0[$50]
 	jp Timer

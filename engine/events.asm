@@ -150,6 +150,8 @@ EnterMap: ; 9673e
 	ld [PoisonStepCount], a
 .asm_96764
 
+	call OverworldClearBGEffects
+
 	xor a
 	ld [$ff9f], a
 	ld a, 2 ; HandleMap
@@ -166,6 +168,7 @@ Function9676d: ; 9676d
 
 
 HandleMap: ; 96773
+	call OverworldStartBGEffects
 	call ResetOverworldDelay
 	call Function967c1
 	callba Function97e08
@@ -182,6 +185,68 @@ HandleMap: ; 96773
 	call Function967f4
 	ret
 ; 96795
+
+OverworldStartBGEffects:
+	ld a, rSCY % $100
+	ld [hLCDStatCustom], a
+	ret
+
+OverworldStopBGEffects:
+	xor a
+	ld [hLCDStatCustom], a
+	ret
+
+
+OverworldClearBGEffects:
+	ld a, [rSVBK]
+	push af
+
+	ld a, 5
+	ld [rSVBK], a
+
+	push hl
+	xor a
+	ld hl, $d100
+	ld bc, $dfff - $d100
+	call ByteFill
+	pop hl
+
+	pop af
+	ld [rSVBK], a
+	ret
+
+
+OverworldDelayPlusBG:
+; Do any required bg effects and delay c frames.
+
+	ld a, [rSVBK]
+	push af
+
+	ld a, 5
+	ld [rSVBK], a
+
+	push bc
+
+	ld a, ANIM_BG_SURF
+	ld [ActiveBGEffects], a
+
+	; bg effects
+	callba Functionc8000
+
+	ld hl, LYOverridesBackup
+	ld de, LYOverrides
+	ld bc, LYOverridesEnd - LYOverrides
+	ld a, [hSCY]
+	call CopyBytesAdd
+
+	pop bc
+
+	call DelayFrames
+
+	pop af
+	ld [rSVBK], a
+	
+	ret
 
 
 MapEvents: ; 96795
@@ -218,11 +283,13 @@ ResetOverworldDelay: ; 967b0
 ; 967b7
 
 NextOverworldFrame: ; 967b7
+
 	ld a, [OverworldDelay]
 	and a
 	ret z
+
 	ld c, a
-	call DelayFrames
+	call OverworldDelayPlusBG
 	ret
 ; 967c1
 

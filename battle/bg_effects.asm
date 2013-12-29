@@ -825,14 +825,14 @@ Jumptable_c8548: ; c8548 (32:4548)
 ; no known jump sources
 Functionc854e: ; c854e (32:454e)
 	call Functionc80e5
-	ld de, $202
+	ld de, $301
 	call Functionc8f69
 
 ; no known jump sources
 Functionc8557: ; c8557 (32:4557)
 	ld a, [hLCDStatCustom] ; $ff00+$c6
 	and a
-	ret z
+	nop
 	push bc
 	call Functionc8565
 	pop bc
@@ -860,7 +860,7 @@ Functionc8565: ; c8565 (32:4565)
 	ld [hl], a
 	ld de, $d200
 	ld hl, $d422
-	ld bc, $0
+	ld bc, 0
 .asm_c8580
 	ld a, [$FF00+$c7]
 	cp e
@@ -880,7 +880,7 @@ Functionc8565: ; c8565 (32:4565)
 	ld c, a
 	inc de
 	ld a, e
-	cp $5f
+	cp 144
 	jr c, .asm_c8580
 	ret
 

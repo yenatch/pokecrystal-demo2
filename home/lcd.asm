@@ -13,6 +13,7 @@ Function547: ; 547
 
 
 LCD: ; 552
+; No longer an interrupt. See HotLCD.
 	push af
 	ld a, [hLCDStatCustom]
 	and a
@@ -33,7 +34,7 @@ LCD: ; 552
 
 .done
 	pop af
-	reti
+	ret
 ; 568
 
 
