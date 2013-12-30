@@ -1,3 +1,8 @@
+INCLUDE "includes.asm"
+
+SECTION "bank79", ROMX, BANK[$79]
+
+
 HackPredef:
     ; save hl
     ld a, h
@@ -40,6 +45,9 @@ HackPredefTable:
     dw DecStringDepth ; 5
     dw VWFResetDisable ; 6
     dw VWFResetEnableAfterOne ; 7
+    dw NewMenu ; 8
+    dw PlayBattleMusicAdvice ; 9
+    dw PlayOWMusicAfterBattleAdvice ; $a
 
 WriteCharAdvice:
     ld a, [VWFDisabled]
@@ -374,3 +382,421 @@ VWFResetEnable:
     xor a
     ld [VWFResetDisabled], a
     ret
+
+LEFT_OFFSET EQU $20
+TOP_OFFSET EQU $30
+
+GetMenuSpriteY:
+	ld a, [WMenuSelected]
+	cp $ff
+	jr z, .floatanyway
+	ld a, b
+	cp d
+	jr nz, .notselected
+.floatanyway
+	ld a, [WMenuFloat]
+	ld e, a
+	ld a, TOP_OFFSET
+	sub e
+	ret
+.notselected
+	ld a, TOP_OFFSET
+	ret
+
+WriteMenuSprite:
+	call GetMenuSpriteY
+	ld [hli], a
+	ld a, b
+	ld c, $1b
+	call SimpleMultiply
+	add LEFT_OFFSET
+	ld [hli], a
+	ld a, b
+	rla
+	rla
+	add $f0
+	ld [hli], a
+	ld a, $08
+	ld [hli], a
+	
+	call GetMenuSpriteY
+	ld [hli], a
+	ld a, b
+	ld c, $1b
+	call SimpleMultiply
+	add LEFT_OFFSET+8
+	ld [hli], a
+	ld a, b
+	rla
+	rla
+	add $f1
+	ld [hli], a
+	ld a, $08
+	ld [hli], a
+	
+	call GetMenuSpriteY
+	add $8
+	ld [hli], a
+	ld a, b
+	ld c, $1b
+	call SimpleMultiply
+	add LEFT_OFFSET
+	ld [hli], a
+	ld a, b
+	rla
+	rla
+	add $f2
+	ld [hli], a
+	ld a, $08
+	ld [hli], a
+	
+	call GetMenuSpriteY
+	add $8
+	ld [hli], a
+	ld a, b
+	ld c, $1b
+	call SimpleMultiply
+	add LEFT_OFFSET+8
+	ld [hli], a
+	ld a, b
+	rla
+	rla
+	add $f3
+	ld [hli], a
+	ld a, $08
+	ld [hli], a
+	ret
+
+FloatMenuIcon:
+	ld a, [$ff9b] ; frame cnt
+	ld b, a
+	and %00000111
+	cp  %00000100
+	ret nz
+	;ld a, [WMenuLastFloated]
+	;cp b
+	;ret z
+	;ld a, b
+	;ld [WMenuLastFloated], a
+	
+	ld a, [WMenuFloatDirection]
+	and a
+	jr nz, .dec
+	ld a, [WMenuFloat]
+	inc a
+	ld [WMenuFloat], a
+	cp $6
+	ret c
+	ld a, 1
+	ld [WMenuFloatDirection], a
+	ret
+.dec
+	ld a, [WMenuFloat]
+	dec a
+	ld [WMenuFloat], a
+	cp $0
+	ret nz
+	xor a
+	ld [WMenuFloatDirection], a
+	ret
+
+RedrawMenuIcons:
+    ld hl, $c460
+    ld a, [WMenuSelected]
+    ld d, a
+    ld b, 0
+    ;ld a, d
+    ;cp d
+    call WriteMenuSprite
+    inc b
+    ;ld a, b
+    ;cp d
+    call WriteMenuSprite
+    inc b
+    ;ld a, b
+    ;cp d
+    call WriteMenuSprite
+    inc b
+    call WriteMenuSprite
+    ret
+
+LoadMenuSprites:
+    ld de, MenuSprites
+    ld hl, $8f00
+    ld bc, (BANK(MenuSprites)<<8)+$10
+	
+    ld a, 1
+    ld [rVBK], a
+    call Request2bpp
+    ld a, 0
+    ld [rVBK], a
+    
+    ret
+
+NewMenu:
+	;callba Function6454
+	;;call MenuFunc_1e7f
+	
+	;call Function1c66
+	;call Function1ebd
+	;call Function1ea6
+	;;call Function1cbb
+	
+	;call Function1cfd
+	;call Function1c53
+	
+	;call Function2e31
+	;call Function2e20
+	;callba Function64bf
+	;call Function1bee
+	
+	ld hl, VramState
+	res 0, [hl]
+	;xor a
+	;ld [hOAMUpdate], a
+	ld a, [$ffbd]
+	ld [TmpNumSprites], a
+	ld a, $a0
+	ld [$ffbd], a ; numsprites
+	
+	call LoadMenuSprites
+	call ResetWindow
+	;callba Function6454
+	
+	call Function2e31
+	call Function2e20
+	
+	
+	;ld hl, TileMap
+	;ld b, $4
+	;ld c, $8
+	;call TextBox
+	;
+	;hlcoord 5, 5
+	;ld de, TestString
+	;call PlaceString
+	ld a, $ff
+	ld [WMenuSelected], a
+	ld a, TOP_OFFSET+$16
+	ld [WMenuFloat], a
+	ld b, $16
+.openloop
+	call DelayFrame
+	push bc
+	call RedrawMenuIcons
+	pop bc
+	ld a, [WMenuFloat]
+	sub (TOP_OFFSET+$16)/$16
+	ld [WMenuFloat], a
+	dec b
+	jr nz, .openloop
+	
+	xor a
+	ld [WMenuSelected], a
+.opened
+	ld a, 1
+	ld [WMenuFloat], a
+.loop
+	;ld a, 1
+	;ld [hBGMapMode], a
+	call DelayFrame
+	
+	call FloatMenuIcon
+	call RedrawMenuIcons
+
+	call GetJoypad	
+	ld a, [hJoyPressed]
+	ld b, a
+	and B_BUTTON|START
+	jr nz, .exit
+	ld a, b
+	and D_RIGHT
+	jr nz, .right
+	ld a, b
+	and D_LEFT
+	jr nz, .left
+	ld a, b
+	and A_BUTTON
+	jr nz, .a
+	jr .loop
+
+.right
+	ld a, [WMenuSelected]
+	inc a
+	jr .setmenu
+.left
+	ld a, [WMenuSelected]
+	dec a
+;	jr .setmenu
+
+.setmenu
+	cp $ff
+	jr nz, .notff
+	ld a, 3
+	jr .ok
+.notff
+	cp $4
+	jr nz, .ok
+	ld a, 0
+.ok
+	ld [WMenuSelected], a
+	xor a
+	ld [WMenuFloat], a
+	ld [WMenuFloatDirection], a
+	jr .loop
+	;call Function269a
+	;call Functiona46
+	;call Function2dcf
+
+.a
+	call PlayClickSFX
+	;call Function1bee
+	xor a
+	ld [hBGMapMode], a
+	ld hl, VramState
+	set 0, [hl]
+	ld hl, MenuActionPointers
+	ld a, [WMenuSelected]
+	rst $28 ; JumpTable
+	and a
+	jr z, .opened
+	jr .closedloop
+	
+.exit
+
+	ld a, $ff
+	ld [WMenuSelected], a
+	xor a
+	ld [WMenuFloat], a
+	ld b, $16
+.closeloop
+	call DelayFrame
+	push bc
+	call RedrawMenuIcons
+	pop bc
+	ld a, [WMenuFloat]
+	add (TOP_OFFSET+$16)/$16
+	ld [WMenuFloat], a
+	dec b
+	jr nz, .closeloop
+.closedloop
+
+	xor a
+	ld [hBGMapMode], a
+
+	ld hl, VramState
+	set 0, [hl]
+	ld a, [TmpNumSprites]
+	ld [$ffbd], a
+	
+	ld a, [hOAMUpdate]
+	push af
+	ld a, 1
+	ld [hOAMUpdate], a
+	call Functione5f
+	pop af
+	ld [hOAMUpdate], a
+	call Function2dcf
+	call UpdateTimePals
+	
+	
+	ret
+
+MenuActionPointers:
+	dw NewMenuPokemon
+	dw NewMenuBag
+	dw NewMenuProfile
+	dw NewMenuSave
+
+NewMenuPokemon:
+	ld a, [PartyCount]
+	and a
+	jr z, .return
+	callba StartMenu_Pokemon
+.return
+	call LoadMenuSprites
+	xor a
+	ret
+
+NewMenuBag:
+	call FadeToMenu
+	callba Function10000
+	ld a, [$cf66]
+	and a
+	jr nz, .asm_12970
+	call Function2b3c
+	call LoadMenuSprites
+	ld a, 0
+	ret
+.asm_12970
+	call Function2b4d
+	;call Function1c07
+	ld a, $80
+	ld [$ffa0], a
+	call LoadMenuSprites
+	ld a, 4
+	ret
+
+NewMenuProfile:
+	; broken
+	ret
+	call FadeToMenu
+	callba Function25105
+	call Function2b3c
+	ld a, 0
+	ret
+
+NewMenuSave:
+	call Function2879
+	callba Function14a1a
+	jr nc, .asm_12919
+	ld a, 0
+	ret
+
+.asm_12919
+	ld a, 1
+	ret
+
+MenuSprites:
+	INCBIN "gfx/menusprites.2bpp"
+
+PlayBattleMusicAdvice:
+	; back up old music state
+	ld bc, $1c0
+	ld hl, $c100
+	ld de, $d000
+	ld a, $4
+	di
+	ld [rSVBK], a
+	call CopyBytes ; copy bc bytes from hl to de
+	ld a, $1
+	ld [rSVBK], a
+	ei
+
+	; o
+	xor a
+	ld [MusicFade], a
+	ret
+
+PlayOWMusicAfterBattleAdvice:
+	ld bc, $1c0
+	ld de, $c100
+	ld hl, $d000
+	ld a, $4
+	di
+	ld [rSVBK], a
+	call CopyBytes ; copy bc bytes from hl to de
+	ld a, $1
+	ld [rSVBK], a
+	ei
+	
+	ret
+
+
+
+
+
+
+
+
+

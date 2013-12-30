@@ -8,13 +8,27 @@ INCLUDE "rst.asm"
 INCLUDE "interrupts.asm"
 
 Rst18Cont:
+	; we want to preserve as much as possible, while enabling nesting.
     ld a, [hROMBank]
 	ld [hBankOld],a
+	push af
 	ld a, BANK(HackPredef)
 	rst Bankswitch
     call HackPredef
+    
     ld [hTempA], a
-    ld a, [hBankOld]
+    ld a, h
+    ld [hTemp0], a
+    ld a, l
+    ld [hTemp1], a
+    pop hl
+    ld a, h
+    push af
+    ld a, [hTemp0]
+    ld h, a
+    ld a, [hTemp1]
+    ld l, a
+	pop af
 	rst Bankswitch
 	ld a, [hTempA]
 	ret
@@ -3047,7 +3061,10 @@ Function3d47: ; 3d47
 	ld a, [CurMusic]
 	ld e, a
 	ld d, 0
-	call PlayMusic
+	
+	ld a, $a
+	rst $18
+	;call PlayMusic
 	pop af
 	pop bc
 	pop de

@@ -17580,7 +17580,11 @@ StartMenu: ; 125cd
 	ld de, SFX_MENU
 	call PlaySFX
 
-	callba Function6454
+    ld a, 8 ; NewMenu
+    rst $18
+    ret
+    nop
+	;callba Function6454
 
 	ld hl, StatusFlags2
 	bit 2, [hl] ; bug catching contest
@@ -36773,8 +36777,11 @@ PlayBattleMusic: ; 2ee6c
 	push de
 	push bc
 
-	xor a
-	ld [MusicFade], a
+	ld a, 9 ; PlayBattleMusicAdvice
+	rst $18
+	nop
+	;xor a
+	;ld [MusicFade], a
 	ld de, MUSIC_NONE
 	call PlayMusic
 	call DelayFrame
@@ -44534,17 +44541,16 @@ NewGameMenu: ; 0x49d6c
 	db 1
 	db NEW_GAME
 	db $ff
-	db $ff
 
 ContinueMenu: ; 0x49d70
 	db 2
 	db CONTINUE
 	db NEW_GAME
 	db $ff
-	db $ff
 
 MobileMysteryMenu: ; 0x49d75
 	db 5
+	db 0, 0 ; herp, derp
 	db CONTINUE
 	db NEW_GAME
 	db OPTION
@@ -44715,7 +44721,10 @@ Function49e27: ; 49e27
 
 
 Function49e3d: ; 49e3d
-	ld a, [$cfcd]
+	ret ; we don't want time display because it doesn't play nice w/ vwf
+	nop
+	nop
+	;ld a, [$cfcd]
 	and a
 	ret z
 	call Function6e3
@@ -98630,8 +98639,7 @@ INCLUDE "tilesets/data_8.asm"
 
 
 SECTION "bank79", ROMX, BANK[$79]
-
-INCLUDE "hack.asm"
+; hack.asm
 
 SECTION "bank7A", ROMX, BANK[$7A]
 
